@@ -4,6 +4,7 @@ main: com.NguyenDevs.extraInvisiblePotion.ExtraInvisiblePotion
 api-version: '1.21'
 description: Allows using Anvil to combine equipment with Invisible Potions.
 author: NguyenDevs
+depend: [ProtocolLib]
 
 commands:
   eip:

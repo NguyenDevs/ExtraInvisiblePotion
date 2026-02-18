@@ -1,7 +1,9 @@
 package com.NguyenDevs.extraInvisiblePotion;
 
-import com.NguyenDevs.extraInvisiblePotion.armor.ArmorEquipListener;
-import com.NguyenDevs.extraInvisiblePotion.armor.ArmorInvisibilityApplier;
+import com.NguyenDevs.extraInvisiblePotion.packet.EquipmentPacketListener;
+import com.NguyenDevs.extraInvisiblePotion.projectile.ProjectileInvisibilityListener;
+import com.comphenix.protocol.ProtocolLibrary;
+
 import com.NguyenDevs.extraInvisiblePotion.command.EIPTabCompleter;
 import com.NguyenDevs.extraInvisiblePotion.command.ReloadCommand;
 import com.NguyenDevs.extraInvisiblePotion.config.ConfigManager;
@@ -9,8 +11,7 @@ import com.NguyenDevs.extraInvisiblePotion.config.MessageManager;
 import com.NguyenDevs.extraInvisiblePotion.data.PlayerDataManager;
 import com.NguyenDevs.extraInvisiblePotion.gui.InvisibleCraftingGui;
 import com.NguyenDevs.extraInvisiblePotion.gui.InvisibleCraftingGuiListener;
-import com.NguyenDevs.extraInvisiblePotion.item.ItemInvisibilityListener;
-import com.NguyenDevs.extraInvisiblePotion.projectile.ProjectileInvisibilityListener;
+
 import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -35,14 +36,17 @@ public final class ExtraInvisiblePotion extends JavaPlugin {
         playerDataManager = new PlayerDataManager(this);
         playerDataManager.load();
 
-        ArmorInvisibilityApplier armorApplier = new ArmorInvisibilityApplier(playerDataManager);
         InvisibleCraftingGui craftingGui = new InvisibleCraftingGui(configManager);
 
         getServer().getPluginManager().registerEvents(new InvisibleCraftingGuiListener(craftingGui, messageManager),
                 this);
-        getServer().getPluginManager().registerEvents(new ArmorEquipListener(armorApplier), this);
-        getServer().getPluginManager().registerEvents(new ItemInvisibilityListener(), this);
+        // getServer().getPluginManager().registerEvents(new
+        // ArmorEquipListener(armorApplier), this); // Removed
+        // getServer().getPluginManager().registerEvents(new ItemInvisibilityListener(),
+        // this); // Removed
         getServer().getPluginManager().registerEvents(new ProjectileInvisibilityListener(configManager), this);
+
+        ProtocolLibrary.getProtocolManager().addPacketListener(new EquipmentPacketListener(this));
 
         ReloadCommand reloadCommand = new ReloadCommand(configManager, messageManager, craftingGui);
         EIPTabCompleter tabCompleter = new EIPTabCompleter();
@@ -54,7 +58,8 @@ public final class ExtraInvisiblePotion extends JavaPlugin {
         }
 
         org.bukkit.Bukkit.getConsoleSender().sendMessage(
-                org.bukkit.ChatColor.translateAlternateColorCodes('&', "&7[&fEIP&7] &aExtraInvisiblePotion plugin enabled successfully."));
+                org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                        "&7[&fEIP&7] &aExtraInvisiblePotion plugin enabled successfully."));
     }
 
     @Override
@@ -63,21 +68,31 @@ public final class ExtraInvisiblePotion extends JavaPlugin {
             playerDataManager.save();
         }
         org.bukkit.Bukkit.getConsoleSender().sendMessage(
-                org.bukkit.ChatColor.translateAlternateColorCodes('&', "&7[&fEIP&7] &cExtraInvisiblePotion plugin disabled."));
+                org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                        "&7[&fEIP&7] &cExtraInvisiblePotion plugin disabled."));
     }
 
     public void printLogoEIP() {
         org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', ""));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&f ███████╗██╗██████╗ "));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&f ██╔════╝██║██╔══██╗"));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&7 █████╗  ██║██████╔╝"));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&7 ██╔══╝  ██║██╔═══╝ "));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&8 ███████╗██║██║     "));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&8 ╚══════╝╚═╝╚═╝    "));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&f ███████╗██╗██████╗ "));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&f ██╔════╝██║██╔══██╗"));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&7 █████╗  ██║██████╔╝"));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&7 ██╔══╝  ██║██╔═══╝ "));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&8 ███████╗██║██║     "));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&8 ╚══════╝╚═╝╚═╝    "));
         org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', ""));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&f Extra Invisible Potion"));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&6 Version " + getDescription().getVersion()));
-        org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',"&b Development by NguyenDevs"));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&f Extra Invisible Potion"));
+        org.bukkit.Bukkit.getConsoleSender().sendMessage(
+                org.bukkit.ChatColor.translateAlternateColorCodes('&', "&6 Version " + getDescription().getVersion()));
+        org.bukkit.Bukkit.getConsoleSender()
+                .sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', "&b Development by NguyenDevs"));
         org.bukkit.Bukkit.getConsoleSender().sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', ""));
     }
 

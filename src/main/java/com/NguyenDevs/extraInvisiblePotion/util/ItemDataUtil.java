@@ -17,9 +17,10 @@ public class ItemDataUtil {
     }
 
     public static void setInvisible(ItemStack item) {
-        if (item == null || !item.hasItemMeta())
+        if (item == null)
             return;
         ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
         meta.getPersistentDataContainer().set(invisibleKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
     }

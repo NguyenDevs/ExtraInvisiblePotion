@@ -6,10 +6,12 @@ import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.event.inventory.InventoryType;
 
 import org.bukkit.inventory.ItemFlag;
@@ -55,8 +57,16 @@ public class InvisibleCraftingGui {
         if (inv.getViewers().isEmpty())
             return false;
         Component title = inv.getViewers().get(0).getOpenInventory().title();
-        String plain = LegacyComponentSerializer.legacySection().serialize(title);
-        return plain.contains("Invisible Crafting");
+        String legacy = LegacyComponentSerializer.legacySection().serialize(title);
+        return ChatColor.stripColor(legacy).contains("Invisible Crafting");
+    }
+
+    public boolean isGui(InventoryView view) {
+        if (view == null) return false;
+        if (view.getTopInventory().getType() != InventoryType.HOPPER) return false;
+        Component title = view.title();
+        String legacy = LegacyComponentSerializer.legacySection().serialize(title);
+        return ChatColor.stripColor(legacy).contains("Invisible Crafting");
     }
 
     public void updateResult(Inventory inv) {
@@ -111,8 +121,8 @@ public class InvisibleCraftingGui {
         if (baseType == null && item.getItemMeta().hasDisplayName()) {
             Component nameComp = item.getItemMeta().displayName();
             if (nameComp != null) {
-                String plain = LegacyComponentSerializer.legacySection().serialize(nameComp).toLowerCase();
-                if (plain.contains("invisib"))
+                String legacy = LegacyComponentSerializer.legacySection().serialize(nameComp).toLowerCase();
+                if (ChatColor.stripColor(legacy).contains("invisib"))
                     return true;
             }
         }
@@ -132,10 +142,11 @@ public class InvisibleCraftingGui {
     }
 
     private void applyInvisibleTag(ItemStack item) {
-        ItemDataUtil.setInvisible(item);
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
             return;
+
+        meta.getPersistentDataContainer().set(ItemDataUtil.getInvisibleKey(), org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
 
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         lore.add(LegacyComponentSerializer.legacySection()

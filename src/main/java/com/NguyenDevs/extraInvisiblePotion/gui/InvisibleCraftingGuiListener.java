@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 public class InvisibleCraftingGuiListener implements Listener {
@@ -28,58 +29,79 @@ public class InvisibleCraftingGuiListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player))
             return;
-        Inventory inv = event.getInventory();
-        if (!gui.isGuiInventory(inv))
+        
+        InventoryView view = event.getView();
+        if (!gui.isGui(view))
             return;
 
-        int slot = event.getRawSlot();
-        int guiSize = inv.getSize();
+        if (event.getAction() == InventoryAction.COLLECT_TO_CURSOR) {
+            event.setCancelled(true);
+            return;
+        }
 
-        // Cancel all shift-click actions from player inventory into GUI
+        Inventory topInv = view.getTopInventory();
+        Inventory clickedInv = event.getClickedInventory();
+        
+        if (clickedInv == null) return;
+
+        int slot = event.getRawSlot();
+        int guiSize = topInv.getSize();
+
         if (slot >= guiSize) {
             InventoryAction action = event.getAction();
             if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
                 event.setCancelled(true);
+                ItemStack currentItem = event.getCurrentItem();
+                if (currentItem == null || currentItem.getType() == Material.AIR) return;
+
+                if (gui.isValidEquipment(currentItem)) {
+                    ItemStack existing = topInv.getItem(InvisibleCraftingGui.SLOT_EQUIPMENT);
+                    if (existing == null || existing.getType() == Material.AIR) {
+                        topInv.setItem(InvisibleCraftingGui.SLOT_EQUIPMENT, currentItem);
+                        event.setCurrentItem(null);
+                        scheduleUpdateResult(topInv);
+                    }
+                } else if (gui.isValidInvisiblePotion(currentItem)) {
+                    ItemStack existing = topInv.getItem(InvisibleCraftingGui.SLOT_POTION);
+                    if (existing == null || existing.getType() == Material.AIR) {
+                        topInv.setItem(InvisibleCraftingGui.SLOT_POTION, currentItem);
+                        event.setCurrentItem(null);
+                        scheduleUpdateResult(topInv);
+                    }
+                }
                 return;
             }
             return;
         }
 
-        // Slot is inside the GUI
-        // Always cancel clicks on filler slots (1 and 3)
         if (slot == InvisibleCraftingGui.SLOT_FILLER_1 || slot == InvisibleCraftingGui.SLOT_FILLER_2) {
             event.setCancelled(true);
             return;
         }
 
-        // Handle result slot
         if (slot == InvisibleCraftingGui.SLOT_RESULT) {
             event.setCancelled(true);
-            // Only allow left-click or right-click to collect result, not shift-click
             ClickType click = event.getClick();
-            if (click == ClickType.LEFT || click == ClickType.RIGHT) {
-                handleResultClick(player, inv);
+            if (click == ClickType.LEFT || click == ClickType.RIGHT || click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT) {
+                handleResultClick(player, topInv);
             }
             return;
         }
 
-        // For equipment and potion slots: cancel shift-click to prevent bypassing
         if (slot == InvisibleCraftingGui.SLOT_EQUIPMENT || slot == InvisibleCraftingGui.SLOT_POTION) {
             ClickType click = event.getClick();
             if (click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT) {
                 event.setCancelled(true);
-                // Manually move item to player inventory
-                ItemStack item = inv.getItem(slot);
+                ItemStack item = topInv.getItem(slot);
                 if (item != null && item.getType() != Material.AIR) {
-                    inv.setItem(slot, null);
+                    topInv.setItem(slot, null);
                     giveOrDrop(player, item);
-                    scheduleUpdateResult(inv);
+                    scheduleUpdateResult(topInv);
                 }
                 return;
             }
 
-            // Schedule result update after normal place/take
-            scheduleUpdateResult(inv);
+            scheduleUpdateResult(topInv);
         }
     }
 
@@ -87,33 +109,38 @@ public class InvisibleCraftingGuiListener implements Listener {
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player))
             return;
-        Inventory inv = event.getInventory();
-        if (!gui.isGuiInventory(inv))
+        
+        InventoryView view = event.getView();
+        if (!gui.isGui(view))
             return;
 
+        Inventory topInv = view.getTopInventory();
         for (int slot : event.getRawSlots()) {
-            if (slot < inv.getSize()
-                    && slot != InvisibleCraftingGui.SLOT_EQUIPMENT
-                    && slot != InvisibleCraftingGui.SLOT_POTION) {
-                event.setCancelled(true);
-                return;
+            if (slot < topInv.getSize()) {
+                if (slot != InvisibleCraftingGui.SLOT_EQUIPMENT
+                        && slot != InvisibleCraftingGui.SLOT_POTION) {
+                    event.setCancelled(true);
+                    return;
+                }
             }
         }
 
-        scheduleUpdateResult(inv);
+        scheduleUpdateResult(topInv);
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player))
             return;
-        Inventory inv = event.getInventory();
-        if (!gui.isGuiInventory(inv))
+        
+        InventoryView view = event.getView();
+        if (!gui.isGui(view))
             return;
 
-        returnItemToPlayer(player, inv, InvisibleCraftingGui.SLOT_EQUIPMENT);
-        returnItemToPlayer(player, inv, InvisibleCraftingGui.SLOT_POTION);
-        returnItemToPlayer(player, inv, InvisibleCraftingGui.SLOT_RESULT);
+        Inventory topInv = view.getTopInventory();
+        returnItemToPlayer(player, topInv, InvisibleCraftingGui.SLOT_EQUIPMENT);
+        returnItemToPlayer(player, topInv, InvisibleCraftingGui.SLOT_POTION);
+        topInv.setItem(InvisibleCraftingGui.SLOT_RESULT, null);
     }
 
     private void handleResultClick(Player player, Inventory inv) {
