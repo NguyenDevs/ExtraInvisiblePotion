@@ -1,0 +1,20 @@
+name: ExtraInvisiblePotion
+version: '${version}'
+main: com.NguyenDevs.extraInvisiblePotion.ExtraInvisiblePotion
+api-version: '1.21'
+description: Allows using Anvil to combine equipment with Invisible Potions.
+author: NguyenDevs
+
+commands:
+  eip:
+    description: ExtraInvisiblePotion main command.
+    usage: /eip <reload>
+    permission: extrainvisiblepotion.admin
+
+permissions:
+  extrainvisiblepotion.admin:
+    description: Access to /eip admin commands.
+    default: op
+  extrainvisiblepotion.use:
+    description: Allows using the invisible anvil crafting feature.
+    default: true

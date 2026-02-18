@@ -1,0 +1,7 @@
+prefix: "<gradient:#7B2FBE:#E040FB>ExtraInvisiblePotion</gradient> &8» &r"
+
+reload-success: "{prefix}&aPlugin reloaded successfully."
+no-permission: "{prefix}&cYou don't have permission to do that."
+anvil-crafted: "{prefix}&aYour item has been imbued with invisibility!"
+unknown-command: "{prefix}&cUnknown command. Usage: &e/eip <reload|enchant>"
+player-only: "{prefix}&cThis command can only be used by players."

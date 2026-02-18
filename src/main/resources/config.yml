@@ -1,0 +1,16 @@
+invisible-potions:
+  - POTION
+  - SPLASH_POTION
+  - LINGERING_POTION
+
+projectile-items:
+  - BOW
+  - CROSSBOW
+  - TRIDENT
+  - SNOWBALL
+  - EGG
+  - FISHING_ROD
+
+enchant-glint: true
+
+invisible-lore: "<#9B59B6>✦ Invisible</#9B59B6>"
