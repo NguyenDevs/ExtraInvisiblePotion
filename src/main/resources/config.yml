@@ -4,16 +4,12 @@ invisible-potions:
   - LINGERING_POTION
 
 projectile-items:
-  - WOODEN_HOE
-  - STONE_HOE
-  - IRON_HOE
-  - GOLDEN_HOE
-  - DIAMOND_HOE
-  - NETHERITE_HOE
-
-# If true, players can see their own invisible items.
-# If false, players see their own invisible items as air (invisible).
-self-view-invisible-items: false
+  - BOW
+  - CROSSBOW
+  - TRIDENT
+  - SNOWBALL
+  - EGG
+  - FISHING_ROD
 
 enchant-glint: true
 
