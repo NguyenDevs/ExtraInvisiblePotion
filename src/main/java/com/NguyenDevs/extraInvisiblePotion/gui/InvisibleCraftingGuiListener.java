@@ -6,6 +6,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -31,29 +33,53 @@ public class InvisibleCraftingGuiListener implements Listener {
             return;
 
         int slot = event.getRawSlot();
+        int guiSize = inv.getSize();
 
-        boolean isFiller = slot != InvisibleCraftingGui.SLOT_EQUIPMENT
-                && slot != InvisibleCraftingGui.SLOT_POTION
-                && slot != InvisibleCraftingGui.SLOT_RESULT
-                && slot < inv.getSize();
+        // Cancel all shift-click actions from player inventory into GUI
+        if (slot >= guiSize) {
+            InventoryAction action = event.getAction();
+            if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+                event.setCancelled(true);
+                return;
+            }
+            return;
+        }
 
-        if (isFiller) {
+        // Slot is inside the GUI
+        // Always cancel clicks on filler slots (1 and 3)
+        if (slot == InvisibleCraftingGui.SLOT_FILLER_1 || slot == InvisibleCraftingGui.SLOT_FILLER_2) {
             event.setCancelled(true);
             return;
         }
 
+        // Handle result slot
         if (slot == InvisibleCraftingGui.SLOT_RESULT) {
             event.setCancelled(true);
-            handleResultClick(player, inv);
+            // Only allow left-click or right-click to collect result, not shift-click
+            ClickType click = event.getClick();
+            if (click == ClickType.LEFT || click == ClickType.RIGHT) {
+                handleResultClick(player, inv);
+            }
             return;
         }
 
-        if (slot >= inv.getSize())
-            return;
+        // For equipment and potion slots: cancel shift-click to prevent bypassing
+        if (slot == InvisibleCraftingGui.SLOT_EQUIPMENT || slot == InvisibleCraftingGui.SLOT_POTION) {
+            ClickType click = event.getClick();
+            if (click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT) {
+                event.setCancelled(true);
+                // Manually move item to player inventory
+                ItemStack item = inv.getItem(slot);
+                if (item != null && item.getType() != Material.AIR) {
+                    inv.setItem(slot, null);
+                    giveOrDrop(player, item);
+                    scheduleUpdateResult(inv);
+                }
+                return;
+            }
 
-        org.bukkit.plugin.Plugin plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("ExtraInvisiblePotion");
-        if (plugin != null) {
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> gui.updateResult(inv));
+            // Schedule result update after normal place/take
+            scheduleUpdateResult(inv);
         }
     }
 
@@ -74,10 +100,7 @@ public class InvisibleCraftingGuiListener implements Listener {
             }
         }
 
-        org.bukkit.plugin.Plugin plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("ExtraInvisiblePotion");
-        if (plugin != null) {
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> gui.updateResult(inv));
-        }
+        scheduleUpdateResult(inv);
     }
 
     @EventHandler
@@ -134,6 +157,13 @@ public class InvisibleCraftingGuiListener implements Listener {
             return;
         inv.setItem(slot, null);
         giveOrDrop(player, item);
+    }
+
+    private void scheduleUpdateResult(Inventory inv) {
+        org.bukkit.plugin.Plugin plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("ExtraInvisiblePotion");
+        if (plugin != null) {
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> gui.updateResult(inv));
+        }
     }
 
     private void giveOrDrop(Player player, ItemStack item) {
