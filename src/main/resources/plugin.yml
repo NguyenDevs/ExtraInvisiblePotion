@@ -16,6 +16,9 @@ permissions:
   extrainvisiblepotion.admin:
     description: Access to /eip admin commands.
     default: op
+  extrainvisiblepotion.bypass:
+    description: Allows seeing invisible items on other players.
+    default: op
   extrainvisiblepotion.use:
     description: Allows using the invisible anvil crafting feature.
     default: true

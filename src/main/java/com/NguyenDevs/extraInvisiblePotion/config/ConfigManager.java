@@ -87,4 +87,8 @@ public class ConfigManager {
     public String getInvisibleLore() {
         return config.getString("invisible-lore", "<#9B59B6>✦ Invisible</#9B59B6>");
     }
+
+    public boolean isSelfInvisibleVisible() {
+        return config.getBoolean("self-view-invisible-items", false);
+    }
 }

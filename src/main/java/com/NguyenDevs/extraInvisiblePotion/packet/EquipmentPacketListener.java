@@ -1,6 +1,7 @@
 package com.NguyenDevs.extraInvisiblePotion.packet;
 
 import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;
+import com.NguyenDevs.extraInvisiblePotion.config.ConfigManager;
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
@@ -18,8 +19,11 @@ import java.util.List;
 
 public class EquipmentPacketListener extends PacketAdapter {
 
-    public EquipmentPacketListener(Plugin plugin) {
+    private final ConfigManager configManager;
+
+    public EquipmentPacketListener(Plugin plugin, ConfigManager configManager) {
         super(plugin, PacketType.Play.Server.ENTITY_EQUIPMENT);
+        this.configManager = configManager;
     }
 
     @Override
@@ -35,11 +39,16 @@ public class EquipmentPacketListener extends PacketAdapter {
             return;
         }
 
-        // If the receiver is the player themselves, do nothing (they should see their
-        // own armor)
-        // Use Entity ID or UUID comparison to be safe
-        if (event.getPlayer().getEntityId() == player.getEntityId()) {
-            return;
+        boolean isSelf = event.getPlayer().getEntityId() == player.getEntityId();
+
+        if (isSelf) {
+            if (configManager.isSelfInvisibleVisible()) {
+                return;
+            }
+        } else {
+            if (event.getPlayer().hasPermission("extrainvisiblepotion.bypass")) {
+                return;
+            }
         }
 
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipmentList = packet.getSlotStackPairLists().read(0);
