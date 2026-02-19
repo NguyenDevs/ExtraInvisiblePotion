@@ -20,5 +20,11 @@ permissions:
     description: Allows seeing invisible items on other players.
     default: op
   extrainvisiblepotion.use:
-    description: Allows using the invisible anvil crafting feature.
+    description: Allows using invisible items (wearing them makes them invisible).
     default: true
+  extrainvisiblepotion.anvil:
+    description: Allows using the invisible anvil crafting feature and shift-click.
+    default: true
+  extrainvisiblepotion.command.enchant:
+    description: Allows using the /eip enchant command.
+    default: op

@@ -10,7 +10,14 @@ projectile-items:
   - SNOWBALL
   - EGG
   - FISHING_ROD
+  - ENDER_PEARL
+  - EXPERIENCE_BOTTLE
+  - SPLASH_POTION
+  - LINGERING_POTION
+  - FIREWORK_ROCKET
 
-enchant-glint: true
+duration-logic: true
 
 invisible-lore: "<#9B59B6>✦ Invisible</#9B59B6>"
+expiration-lore: "&7Expire: &f%date%"
+date-format: "HH:mm dd/MM/yyyy"

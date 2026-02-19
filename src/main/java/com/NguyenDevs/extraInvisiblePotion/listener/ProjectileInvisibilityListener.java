@@ -1,4 +1,4 @@
-package com.NguyenDevs.extraInvisiblePotion.projectile;
+package com.NguyenDevs.extraInvisiblePotion.listener;
 
 import com.NguyenDevs.extraInvisiblePotion.config.ConfigManager;
 import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;

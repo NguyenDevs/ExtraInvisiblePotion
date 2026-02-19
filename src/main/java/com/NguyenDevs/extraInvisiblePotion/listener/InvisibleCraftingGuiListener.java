@@ -1,4 +1,6 @@
-package com.NguyenDevs.extraInvisiblePotion.gui;
+package com.NguyenDevs.extraInvisiblePotion.listener;
+
+import com.NguyenDevs.extraInvisiblePotion.gui.InvisibleCraftingGui;
 
 import com.NguyenDevs.extraInvisiblePotion.config.MessageManager;
 import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;
@@ -29,7 +31,7 @@ public class InvisibleCraftingGuiListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player))
             return;
-        
+
         InventoryView view = event.getView();
         if (!gui.isGui(view))
             return;
@@ -41,8 +43,9 @@ public class InvisibleCraftingGuiListener implements Listener {
 
         Inventory topInv = view.getTopInventory();
         Inventory clickedInv = event.getClickedInventory();
-        
-        if (clickedInv == null) return;
+
+        if (clickedInv == null)
+            return;
 
         int slot = event.getRawSlot();
         int guiSize = topInv.getSize();
@@ -52,7 +55,8 @@ public class InvisibleCraftingGuiListener implements Listener {
             if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
                 event.setCancelled(true);
                 ItemStack currentItem = event.getCurrentItem();
-                if (currentItem == null || currentItem.getType() == Material.AIR) return;
+                if (currentItem == null || currentItem.getType() == Material.AIR)
+                    return;
 
                 if (gui.isValidEquipment(currentItem)) {
                     ItemStack existing = topInv.getItem(InvisibleCraftingGui.SLOT_EQUIPMENT);
@@ -82,7 +86,8 @@ public class InvisibleCraftingGuiListener implements Listener {
         if (slot == InvisibleCraftingGui.SLOT_RESULT) {
             event.setCancelled(true);
             ClickType click = event.getClick();
-            if (click == ClickType.LEFT || click == ClickType.RIGHT || click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT) {
+            if (click == ClickType.LEFT || click == ClickType.RIGHT || click == ClickType.SHIFT_LEFT
+                    || click == ClickType.SHIFT_RIGHT) {
                 handleResultClick(player, topInv);
             }
             return;
@@ -109,7 +114,7 @@ public class InvisibleCraftingGuiListener implements Listener {
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player))
             return;
-        
+
         InventoryView view = event.getView();
         if (!gui.isGui(view))
             return;
@@ -132,7 +137,7 @@ public class InvisibleCraftingGuiListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player))
             return;
-        
+
         InventoryView view = event.getView();
         if (!gui.isGui(view))
             return;
@@ -150,7 +155,7 @@ public class InvisibleCraftingGuiListener implements Listener {
         if (!ItemDataUtil.isInvisible(result))
             return;
 
-        if (!player.hasPermission("extrainvisiblepotion.use")) {
+        if (!player.hasPermission("extrainvisiblepotion.anvil")) {
             player.sendMessage(messageManager.getMessage("no-permission"));
             return;
         }
@@ -174,6 +179,7 @@ public class InvisibleCraftingGuiListener implements Listener {
 
         giveOrDrop(player, result);
         player.sendMessage(messageManager.getMessage("anvil-crafted"));
+        player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f);
 
         gui.updateResult(inv);
     }

@@ -5,6 +5,7 @@ import com.NguyenDevs.extraInvisiblePotion.util.ColorUtil;
 import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -49,6 +50,7 @@ public class InvisibleCraftingGui {
         inv.setItem(SLOT_FILLER_1, createFiller());
         inv.setItem(SLOT_FILLER_2, createFiller());
         player.openInventory(inv);
+        player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_BREWING_STAND_BREW, 1f, 1f);
     }
 
     public boolean isGuiInventory(Inventory inv) {
@@ -62,8 +64,10 @@ public class InvisibleCraftingGui {
     }
 
     public boolean isGui(InventoryView view) {
-        if (view == null) return false;
-        if (view.getTopInventory().getType() != InventoryType.HOPPER) return false;
+        if (view == null)
+            return false;
+        if (view.getTopInventory().getType() != InventoryType.HOPPER)
+            return false;
         Component title = view.title();
         String legacy = LegacyComponentSerializer.legacySection().serialize(title);
         return ChatColor.stripColor(legacy).contains("Invisible Crafting");
@@ -84,9 +88,38 @@ public class InvisibleCraftingGui {
         }
 
         ItemStack result = equipment.clone();
-        result.setAmount(1);
-        applyInvisibleTag(result);
+        // Allow stacking: maintain the amount from the equipment
+        // result.setAmount(equipment.getAmount()); // Clone already keeps amount
+
+        long duration = getInvisibilityDuration(potion);
+        applyInvisibleTag(result, duration);
         inv.setItem(SLOT_RESULT, result);
+    }
+
+    private long getInvisibilityDuration(ItemStack potion) {
+        if (potion == null || !potion.hasItemMeta())
+            return -1;
+        if (!(potion.getItemMeta() instanceof PotionMeta meta))
+            return -1;
+
+        if (meta.hasCustomEffects()) {
+            for (PotionEffect effect : meta.getCustomEffects()) {
+                if (effect.getType().equals(PotionEffectType.INVISIBILITY)) {
+                    return effect.getDuration() * 50L;
+                }
+            }
+        }
+
+        PotionType type = meta.getBasePotionType();
+        if (type != null) {
+            for (PotionEffect effect : type.getPotionEffects()) {
+                if (effect.getType().equals(PotionEffectType.INVISIBILITY)) {
+                    return effect.getDuration() * 50L;
+                }
+            }
+        }
+
+        return -1;
     }
 
     public boolean isValidEquipment(ItemStack item) {
@@ -110,15 +143,18 @@ public class InvisibleCraftingGui {
             return false;
 
         PotionType baseType = potionMeta.getBasePotionType();
-        if (baseType == PotionType.INVISIBILITY)
+        if (baseType == PotionType.INVISIBILITY || baseType == PotionType.LONG_INVISIBILITY)
             return true;
 
-        for (PotionEffect effect : potionMeta.getCustomEffects()) {
-            if (effect.getType().equals(PotionEffectType.INVISIBILITY))
-                return true;
+        if (potionMeta.hasCustomEffects()) {
+            for (PotionEffect effect : potionMeta.getCustomEffects()) {
+                if (effect.getType().equals(PotionEffectType.INVISIBILITY))
+                    return true;
+            }
         }
 
-        if (baseType == null && item.getItemMeta().hasDisplayName()) {
+        // Just in case checking for display name is needed as fallback
+        if (item.getItemMeta().hasDisplayName()) {
             Component nameComp = item.getItemMeta().displayName();
             if (nameComp != null) {
                 String legacy = LegacyComponentSerializer.legacySection().serialize(nameComp).toLowerCase();
@@ -141,16 +177,32 @@ public class InvisibleCraftingGui {
                 || material == Material.ENDER_PEARL || material == Material.FISHING_ROD;
     }
 
-    private void applyInvisibleTag(ItemStack item) {
+    private void applyInvisibleTag(ItemStack item, long duration) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
             return;
 
-        meta.getPersistentDataContainer().set(ItemDataUtil.getInvisibleKey(), org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
+        meta.getPersistentDataContainer().set(ItemDataUtil.getInvisibleKey(),
+                org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
 
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         lore.add(LegacyComponentSerializer.legacySection()
-                .deserialize(ColorUtil.colorize(configManager.getInvisibleLore())));
+                .deserialize(ColorUtil.colorize(configManager.getInvisibleLore()))
+                .decoration(TextDecoration.ITALIC, false));
+
+        if (configManager.isDurationLogicEnabled() && duration > 0) {
+            long expiration = System.currentTimeMillis() + duration;
+            ItemDataUtil.setExpiration(item, expiration);
+
+            String dateFormat = configManager.getDateFormat();
+            String expirationLore = configManager.getExpirationLore();
+            String dateStr = new java.text.SimpleDateFormat(dateFormat).format(new java.util.Date(expiration));
+
+            lore.add(LegacyComponentSerializer.legacySection()
+                    .deserialize(ColorUtil.colorize(expirationLore.replace("%date%", dateStr)))
+                    .decoration(TextDecoration.ITALIC, false));
+        }
+
         meta.lore(lore);
 
         if (configManager.isEnchantGlint()) {

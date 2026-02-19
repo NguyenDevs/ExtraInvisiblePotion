@@ -15,7 +15,14 @@ public class EIPTabCompleter implements TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> available = sender.hasPermission("extrainvisiblepotion.admin") ? ADMIN_SUBS : USER_SUBS;
+            List<String> available = new ArrayList<>();
+            if (sender.hasPermission("extrainvisiblepotion.admin")) {
+                available.addAll(ADMIN_SUBS);
+                available.add("setinvisible");
+            } else {
+                available.addAll(USER_SUBS);
+            }
+
             List<String> completions = new ArrayList<>();
             for (String sub : available) {
                 if (sub.startsWith(args[0].toLowerCase())) {
@@ -24,6 +31,25 @@ public class EIPTabCompleter implements TabCompleter {
             }
             return completions;
         }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("setinvisible")) {
+            if (!sender.hasPermission("extrainvisiblepotion.admin"))
+                return new ArrayList<>();
+            List<String> bools = List.of("true", "false");
+            List<String> completions = new ArrayList<>();
+            for (String b : bools) {
+                if (b.startsWith(args[1].toLowerCase()))
+                    completions.add(b);
+            }
+            return completions;
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("setinvisible") && args[1].equalsIgnoreCase("true")) {
+            if (!sender.hasPermission("extrainvisiblepotion.admin"))
+                return new ArrayList<>();
+            return List.of("1d", "1h", "30m", "10s", "-1");
+        }
+
         return new ArrayList<>();
     }
 }

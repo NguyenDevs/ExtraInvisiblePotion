@@ -1,18 +1,24 @@
-package com.NguyenDevs.extraInvisiblePotion.anvil;
+package com.NguyenDevs.extraInvisiblePotion.listener;
 
 import com.NguyenDevs.extraInvisiblePotion.config.ConfigManager;
 import com.NguyenDevs.extraInvisiblePotion.config.MessageManager;
+import com.NguyenDevs.extraInvisiblePotion.gui.InvisibleCraftingGui;
 import com.NguyenDevs.extraInvisiblePotion.util.ColorUtil;
 import com.NguyenDevs.extraInvisiblePotion.util.ItemDataUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -30,10 +36,38 @@ public class AnvilInvisibleListener implements Listener {
 
     private final ConfigManager configManager;
     private final MessageManager messageManager;
+    private final InvisibleCraftingGui gui;
 
-    public AnvilInvisibleListener(ConfigManager configManager, MessageManager messageManager) {
+    public AnvilInvisibleListener(ConfigManager configManager, MessageManager messageManager,
+            InvisibleCraftingGui gui) {
         this.configManager = configManager;
         this.messageManager = messageManager;
+        this.gui = gui;
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
+            return;
+        if (!event.getPlayer().isSneaking())
+            return;
+        if (event.getClickedBlock() == null)
+            return;
+
+        Material type = event.getClickedBlock().getType();
+        if (type != Material.ANVIL && type != Material.CHIPPED_ANVIL && type != Material.DAMAGED_ANVIL)
+            return;
+
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+
+        if (!player.hasPermission("extrainvisiblepotion.anvil")) {
+            player.sendMessage(messageManager.getMessage("no-permission"));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 1f);
+            return;
+        }
+
+        gui.open(player);
     }
 
     @EventHandler
@@ -43,11 +77,14 @@ public class AnvilInvisibleListener implements Listener {
         ItemStack secondItem = inv.getSecondItem();
 
         ItemStack equipment = null;
+        ItemStack potion = null;
 
         if (isValidEquipment(firstItem) && isValidInvisiblePotion(secondItem)) {
             equipment = firstItem;
+            potion = secondItem;
         } else if (isValidEquipment(secondItem) && isValidInvisiblePotion(firstItem)) {
             equipment = secondItem;
+            potion = firstItem;
         }
 
         if (equipment == null)
@@ -59,7 +96,10 @@ public class AnvilInvisibleListener implements Listener {
         }
 
         ItemStack result = equipment.clone();
-        applyInvisibleTag(result);
+        // Maintain amount (clone does it)
+
+        long duration = getInvisibilityDuration(potion);
+        applyInvisibleTag(result, duration);
         event.setResult(result);
     }
 
@@ -76,13 +116,42 @@ public class AnvilInvisibleListener implements Listener {
         if (result == null || !ItemDataUtil.isInvisible(result))
             return;
 
-        if (!player.hasPermission("extrainvisiblepotion.use")) {
+        if (!player.hasPermission("extrainvisiblepotion.anvil")) {
             event.setCancelled(true);
             player.sendMessage(messageManager.getMessage("no-permission"));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 1f);
             return;
         }
 
         player.sendMessage(messageManager.getMessage("anvil-crafted"));
+        player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
+        player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f);
+    }
+
+    private long getInvisibilityDuration(ItemStack potion) {
+        if (potion == null || !potion.hasItemMeta())
+            return -1;
+        if (!(potion.getItemMeta() instanceof PotionMeta meta))
+            return -1;
+
+        if (meta.hasCustomEffects()) {
+            for (PotionEffect effect : meta.getCustomEffects()) {
+                if (effect.getType().equals(PotionEffectType.INVISIBILITY)) {
+                    return effect.getDuration() * 50L;
+                }
+            }
+        }
+
+        PotionType type = meta.getBasePotionType();
+        if (type != null) {
+            for (PotionEffect effect : type.getPotionEffects()) {
+                if (effect.getType().equals(PotionEffectType.INVISIBILITY)) {
+                    return effect.getDuration() * 50L;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private boolean isValidEquipment(ItemStack item) {
@@ -117,19 +186,22 @@ public class AnvilInvisibleListener implements Listener {
             return false;
 
         PotionType baseType = potionMeta.getBasePotionType();
-        if (baseType == PotionType.INVISIBILITY)
+        if (baseType == PotionType.INVISIBILITY || baseType == PotionType.LONG_INVISIBILITY)
             return true;
 
-        for (PotionEffect effect : potionMeta.getCustomEffects()) {
-            if (effect.getType().equals(PotionEffectType.INVISIBILITY))
-                return true;
+        if (potionMeta.hasCustomEffects()) {
+            for (PotionEffect effect : potionMeta.getCustomEffects()) {
+                if (effect.getType().equals(PotionEffectType.INVISIBILITY))
+                    return true;
+            }
         }
 
-        if (baseType == null && item.getItemMeta().hasDisplayName()) {
+        // Just in case checking for display name is needed as fallback
+        if (item.getItemMeta().hasDisplayName()) {
             Component nameComp = item.getItemMeta().displayName();
             if (nameComp != null) {
-                String plain = LegacyComponentSerializer.legacySection().serialize(nameComp).toLowerCase();
-                if (plain.contains("invisib"))
+                String legacy = LegacyComponentSerializer.legacySection().serialize(nameComp).toLowerCase();
+                if (ChatColor.stripColor(legacy).contains("invisib"))
                     return true;
             }
         }
@@ -137,15 +209,32 @@ public class AnvilInvisibleListener implements Listener {
         return false;
     }
 
-    private void applyInvisibleTag(ItemStack item) {
-        ItemDataUtil.setInvisible(item);
+    private void applyInvisibleTag(ItemStack item, long duration) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
             return;
 
+        meta.getPersistentDataContainer().set(ItemDataUtil.getInvisibleKey(),
+                org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
+
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         lore.add(LegacyComponentSerializer.legacySection()
-                .deserialize(ColorUtil.colorize(configManager.getInvisibleLore())));
+                .deserialize(ColorUtil.colorize(configManager.getInvisibleLore()))
+                .decoration(TextDecoration.ITALIC, false));
+
+        if (configManager.isDurationLogicEnabled() && duration > 0) {
+            long expiration = System.currentTimeMillis() + duration;
+            ItemDataUtil.setExpiration(item, expiration);
+
+            String dateFormat = configManager.getDateFormat();
+            String expirationLore = configManager.getExpirationLore();
+            String dateStr = new java.text.SimpleDateFormat(dateFormat).format(new java.util.Date(expiration));
+
+            lore.add(LegacyComponentSerializer.legacySection()
+                    .deserialize(ColorUtil.colorize(expirationLore.replace("%date%", dateStr)))
+                    .decoration(TextDecoration.ITALIC, false));
+        }
+
         meta.lore(lore);
 
         if (configManager.isEnchantGlint()) {

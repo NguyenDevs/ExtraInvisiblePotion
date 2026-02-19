@@ -32,12 +32,13 @@ public class ConfigManager {
     private void mergeDefaults() {
         InputStream defaultStream = this.plugin.getResource("config.yml");
         if (defaultStream != null) {
-            FileConfiguration defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(defaultStream, StandardCharsets.UTF_8));
+            FileConfiguration defaults = YamlConfiguration
+                    .loadConfiguration(new InputStreamReader(defaultStream, StandardCharsets.UTF_8));
             boolean changed = false;
             Iterator var4 = defaults.getKeys(true).iterator();
 
-            while(var4.hasNext()) {
-                String key = (String)var4.next();
+            while (var4.hasNext()) {
+                String key = (String) var4.next();
                 if (!this.config.contains(key)) {
                     this.config.set(key, defaults.get(key));
                     changed = true;
@@ -48,7 +49,8 @@ public class ConfigManager {
                 try {
                     this.config.save(new File(this.plugin.getDataFolder(), "config.yml"));
                 } catch (IOException var6) {
-                    this.plugin.getLogger().warning("Could not save config.yml after merging defaults: " + var6.getMessage());
+                    this.plugin.getLogger()
+                            .warning("Could not save config.yml after merging defaults: " + var6.getMessage());
                 }
             }
 
@@ -66,8 +68,8 @@ public class ConfigManager {
         Set<Material> materials = new HashSet();
         Iterator var3 = list.iterator();
 
-        while(var3.hasNext()) {
-            String s = (String)var3.next();
+        while (var3.hasNext()) {
+            String s = (String) var3.next();
             Material mat = Material.matchMaterial(s);
             if (mat != null) {
                 materials.add(mat);
@@ -82,8 +84,8 @@ public class ConfigManager {
         Set<Material> materials = new HashSet();
         Iterator var3 = list.iterator();
 
-        while(var3.hasNext()) {
-            String s = (String)var3.next();
+        while (var3.hasNext()) {
+            String s = (String) var3.next();
             Material mat = Material.matchMaterial(s);
             if (mat != null) {
                 materials.add(mat);
@@ -99,5 +101,17 @@ public class ConfigManager {
 
     public String getInvisibleLore() {
         return this.config.getString("invisible-lore", "<#9B59B6>✦ Invisible</#9B59B6>");
+    }
+
+    public boolean isDurationLogicEnabled() {
+        return this.config.getBoolean("duration-logic", true);
+    }
+
+    public String getExpirationLore() {
+        return this.config.getString("expiration-lore", "&7Expire: &f%date%");
+    }
+
+    public String getDateFormat() {
+        return this.config.getString("date-format", "HH:mm dd/MM/yyyy");
     }
 }
